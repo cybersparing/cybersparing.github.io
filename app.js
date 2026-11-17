@@ -46,29 +46,35 @@
     return {x:s*s*s*line.p0.x+3*s*s*t*line.p1.x+3*s*t*t*line.p2.x+t*t*t*line.p3.x,
             y:s*s*s*line.p0.y+3*s*s*t*line.p1.y+3*s*t*t*line.p2.y+t*t*t*line.p3.y};
   };
+  const warm = [255,171,135], cool = [125,202,255];
+  function colorAt(x, alpha) {
+    const mix = Math.max(0,Math.min(1,(x/width-.42)/.16));
+    const rgb = warm.map((channel,i)=>Math.round(channel+(cool[i]-channel)*mix));
+    return `rgba(${rgb.join(',')},${alpha})`;
+  }
   function setup() {
     scale=Math.min(devicePixelRatio || 1,2);
     width=innerWidth; height=innerHeight;
     canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);
     ctx.setTransform(scale,0,0,scale,0,0);
     lines.length=0;
-    // Established strands stay at the page edges, away from the headline.
+    // Strands cross the viewport in the upper and lower bands.
     for (let side=0; side<2; side++) {
       for (let i=0;i<10;i++) {
         const top=i<5, k=i%5, base=top?.075:.79;
         const p0={x:(side===0?-.08:1.08)*width,y:(base+k*.047+.01*rand(i+side*20))*height};
-        const p1={x:(side===0?.16:.84)*width,y:(base-.065+k*.048+.055*rand(i+30+side*20))*height};
-        const p2={x:(side===0?.34:.66)*width,y:(base+.08+k*.03-.056*rand(i+50+side*20))*height};
-        const p3={x:(side===0?.58:.42)*width,y:(base+.015+k*.035+.015*rand(i+70+side*20))*height};
+        const p1={x:(side===0?.24:.76)*width,y:(base-.065+k*.048+.055*rand(i+30+side*20))*height};
+        const p2={x:(side===0?.72:.28)*width,y:(base+.08+k*.03-.056*rand(i+50+side*20))*height};
+        const p3={x:(side===0?1.08:-.08)*width,y:(base+.015+k*.035+.015*rand(i+70+side*20))*height};
         const n=i+10*side;
-        lines.push({p0,p1,p2,p3,side,baseAlpha:.11+.11*rand(n+75),
+        lines.push({p0,p1,p2,p3,baseAlpha:.11+.11*rand(n+75),
           // Stagger arrivals: brief journeys followed by a quiet gap on each route.
-          period:9.2+2.7*rand(n+450),journey:3.8+.8*rand(n+230),
-          delay:9*rand(n+150),col:side===0?'255,171,135':'125,202,255'});
+          period:12.4+2.7*rand(n+450),journey:6.7+1.3*rand(n+230),
+          delay:9*rand(n+150)});
       }
     }
   }
-  function trace(line,from,to,widthPx,paint,blur) {
+  function trace(line,from,to,widthPx,paint,blur,glow) {
     if (to<=from) return;
     const count=Math.max(8,Math.ceil((to-from)*88));
     ctx.beginPath();
@@ -81,7 +87,7 @@
     ctx.strokeStyle=paint;
     ctx.lineWidth=widthPx;
     ctx.lineCap='round'; ctx.lineJoin='round';
-    ctx.shadowColor=blur?`rgba(${line.col},.74)`:'transparent';
+    ctx.shadowColor=blur?glow:'transparent';
     ctx.shadowBlur=blur;
     ctx.stroke();ctx.shadowBlur=0;
   }
@@ -89,7 +95,11 @@
     for (const line of lines) {
       ctx.beginPath();ctx.moveTo(line.p0.x,line.p0.y);
       ctx.bezierCurveTo(line.p1.x,line.p1.y,line.p2.x,line.p2.y,line.p3.x,line.p3.y);
-      ctx.strokeStyle=`rgba(${line.col},${line.baseAlpha})`;
+      const gradient=ctx.createLinearGradient(0,0,width,0);
+      for (const stop of [0,.42,.58,1]) {
+        gradient.addColorStop(stop,colorAt(stop*width,line.baseAlpha));
+      }
+      ctx.strokeStyle=gradient;
       ctx.lineWidth=.8;ctx.stroke();
     }
   }
@@ -105,16 +115,14 @@
       if (clock>=line.journey) continue;
       const progress=clock/line.journey;
       // A luminous STROKE along the existing curve, never an independent flying dot.
-      const a=Math.max(0,progress-.24), b=progress;
+      const a=Math.max(0,progress-.14), b=progress;
       const start=point(line,a), tip=point(line,b);
       const grad=ctx.createLinearGradient(start.x,start.y,tip.x,tip.y);
-      grad.addColorStop(0,`rgba(${line.col},0)`);
-      grad.addColorStop(.25,`rgba(${line.col},.22)`);
-      grad.addColorStop(.55,`rgba(${line.col},.82)`);
-      grad.addColorStop(.80,`rgba(${line.col},.68)`);
-      grad.addColorStop(1,`rgba(${line.col},0)`);
-      // Gentle warmth of the whole segment, then a clean bright edge.
-      trace(line,a,b,3.2,grad,11);
+      const stops=[[0,0],[.25,.22],[.55,.82],[.80,.68],[1,0]];
+      for (const [stop,alpha] of stops) {
+        grad.addColorStop(stop,colorAt(start.x+(tip.x-start.x)*stop,alpha));
+      }
+      trace(line,a,b,3.2,grad,11,colorAt((start.x+tip.x)/2,.74));
       trace(line,a,b,1.25,grad,0);
     }
     frameId=requestAnimationFrame(render);
