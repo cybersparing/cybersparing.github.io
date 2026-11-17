@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="CyberSparring"><title>CyberSparring</title><g fill="none" stroke="#D6D9DB" stroke-width=".8">
+<circle cx="80" cy="80" r="60" opacity=".31"/>
+<circle cx="80" cy="80" r="72" stroke-dasharray="1 4" opacity=".20"/>
+<path d="M80 14v12M80 134v12M14 80h12M134 80h12" opacity=".55"/>
+</g><g transform="translate(80 80) scale(1.5) translate(-80 -80)"><g transform="translate(41.6 41.6) scale(.8)"><path d="M20 12H73L57 28H27V44H46L30 60H11V21Z" fill="#FFAB87"/><path d="M20 12H73L57 28H27V44H46L30 60H11V21Z" transform="rotate(180 48 48)" fill="#7DCAFF"/></g></g></svg>
